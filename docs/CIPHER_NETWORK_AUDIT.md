@@ -276,3 +276,68 @@ Priorité Enhanced Privacy / options :
 | Changer URLs serveur | **INCOMPATIBLE** |
 | Serveur Cipher custom | **INCOMPATIBLE** (phase actuelle) |
 | Remplacer FCM sans équivalent | **RISQUE DE COMPATIBILITÉ** |
+
+---
+
+## Complément d’audit approfondi (2026-10-01)
+
+### Contournement de censure (détail)
+
+Quand **activé** (pays / réglage Advanced Privacy) et **proxy Signal désactivé** :
+
+| Mode | Domaines visibles (SNI) | Backend |
+|------|-------------------------|---------|
+| Google fronting | `www.google.com` (+ TLD locaux), `android.clients.google.com`, etc. | Host `reflector-nrgwuv7kwq-uc.a.run.app` → service/cdn/storage/cdsi/svr2 |
+| Fastly fronting | `github.githubassets.com`, `pinterest.com`, `www.redditstatic.com` | `*-signal.global.ssl.fastly.net` / `*.prod.fastly.net` |
+
+**COMPATIBILITÉ :** COMPATIBLE avec infra Signal.  
+**Désactivable :** oui (setting) — **RISQUE** sur réseaux censurés.
+
+### Proxy Signal (détail technique)
+
+| Élément | Détail |
+|---------|--------|
+| Deep links | `https://signal.tube/#<hôte>` / `sgnl://` |
+| Protocole | TLS proxy libsignal (`ProxyScheme.TLS`) — pas HTTP CONNECT classique |
+| Effet | Force config **non censurée** + injecte proxy ; fronting Google/Fastly **non utilisé** |
+| Proxy système Android | Utilisé seulement si config non censurée **et** sans proxy Signal ; `http` / `socks5` ; PAC loopback ignoré (`ProxyConfig.kt`) |
+
+Fichiers : `core/network/.../ProxyConfig.kt`, `EditProxy*`, `ProxyValues`.
+
+### Giphy via content proxy
+
+Requêtes `api.giphy.com` / `*.giphy.com` passent par `contentproxy.signal.org` (`ContentProxySelector`) — l’IP utilisateur n’atteint pas Giphy directement, mais Signal voit la requête.
+
+### MobileCoin (paiements P2P)
+
+| Hôte | Rôle |
+|------|------|
+| `mc://node*.consensus.mob.production.namda.net` | Consensus |
+| `fog://fog.prod.mobilecoinww.com` | Fog |
+| `fog://fog-rpt-prd.namda.net` | Fog report |
+| + API `chat.signal.org` | Autorisation paiements |
+
+**Indispensable :** non · **Désactivable :** oui · **COMPATIBLE** messagerie si désactivé.
+
+### Liens / hôtes sociaux (hors API core)
+
+`signal.me`, `signal.group`, `signal.link`, `support.signal.org`, `signal.org` — deep links / aide.  
+Changer les schemes sans plan = **RISQUE DE COMPATIBILITÉ**.
+
+### Matrice désactivation vs fonctions
+
+| Connexion | 1:1 | Groupes | Médias | Appels | Inscription |
+|-----------|-----|---------|--------|--------|-------------|
+| chat + storage + CDN | Oui | Oui | Oui | Partiel | Oui |
+| CDSI | Optionnel | — | — | — | — |
+| SVR2 | — | — | — | — | Restore PIN |
+| SFU | — | — | — | Groupe | — |
+| FCM | Dégradé | Dégradé | — | — | Push codes |
+| Giphy / Maps / Stripe / MobileCoin / debuglogs | — | — | — | — | — |
+
+### Fichiers de référence additionnels
+
+- `app/.../push/SignalServiceNetworkAccess.kt`
+- `core/network/.../ProxyConfig.kt`
+- `app/.../net/ContentProxySelector.java`
+- `app/.../logsubmit/SubmitDebugLogRepository.java` (`https://debuglogs.org`)

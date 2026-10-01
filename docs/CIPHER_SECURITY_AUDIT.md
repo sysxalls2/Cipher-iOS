@@ -295,12 +295,117 @@ Production Cipher : **zéro SENSITIVE** dans logs persistés / uploadables.
 
 ## Priorisation recommandée
 
-1. SEC-06 / SEC-07 logging  
-2. SEC-02 notifications  
-3. SEC-03 / SEC-04 screen + recents  
-4. SEC-05 clipboard  
-5. SEC-01 backups option  
-6. SEC-08 / SEC-09 / SEC-17 stockage  
-7. SEC-18 Clear Local Data  
+1. SEC-01 / SEC-21 backups ABS + jetons SVR  
+2. SEC-22 legacy DB secret plaintext (si présent)  
+3. SEC-05 / SEC-23 clipboard messages  
+4. SEC-02 / SEC-24 notifications (défaut `all`)  
+5. SEC-03 / SEC-04 screen + recents (défaut OFF upstream)  
+6. SEC-06 / SEC-07 / SEC-25 logging & crashes  
+7. SEC-08 / SEC-09 / SEC-17 / SEC-27 stockage temp  
+8. SEC-18 Clear Local Data  
 
 **Ne pas toucher** sans autorisation : libsignal, formats, endpoints, applicationId (phase dédiée).
+
+---
+
+## Complément d’audit approfondi (2026-10-01)
+
+Findings additionnels issus d’une revue statique ciblée (`app` / `core` / `lib`). Aucune modification de code.
+
+### SEC-21 — Liste ABS limitée à `SvrAuthTokens`
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | HIGH |
+| **Fichier** | `absbackup/backupables/SvrAuthTokens.kt` |
+| **Comportement** | Encode `SignalStore.svr.svr2AuthTokens` pour Android Backup ; restore si store vide |
+| **Risque** | Jetons de récupération hors coffre messages |
+| **Correction** | Retirer de `SignalBackupAgent.items` ou `allowBackup=false` en Enhanced Privacy |
+| **Impact Signal** | COMPATIBLE protocole ; RISQUE UX réinstall via ABS |
+| **Difficulté** | Faible |
+| **Tests** | Backup/restore Google ; réinscription SVR |
+
+### SEC-22 — Secret DB legacy non chiffré (migration)
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | CRITICAL si présent / INFORMATIONAL après migration |
+| **Fichier** | `keyvalue/PlainTextKeyValueStore.kt`, `DatabaseSecretProvider` |
+| **Comportement** | Anciennes installs : `pref_database_unencrypted_secret` en SharedPreferences jusqu’à scellage Keystore |
+| **Risque** | Clé SQLCipher en clair (root / forensic / backup prefs) |
+| **Correction** | Migration forcée au démarrage Cipher ; refuser legacy non migré |
+| **Impact Signal** | COMPATIBLE si migration idempotente |
+| **Difficulté** | Moyenne |
+| **Tests** | Fixture prefs legacy → upgrade → absence plaintext |
+
+### SEC-23 — Copie de messages sans `copyToClipboardSensitive`
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | HIGH |
+| **Fichiers** | `conversation/v2/ConversationRepository.kt` ; aussi `MessageHeaderViewHolder`, `ScheduledMessagesBottomSheet`, `EmojiEditText` |
+| **Comportement** | Corps de message → `Util.copyToClipboard` (pas de flag sensitive API 33+, pas de clear timer) |
+| **Risque** | Contenu message persiste dans le presse-papiers / suggestions clavier |
+| **Correction** | Router vers `copyToClipboardSensitive` ; timeout configurable Enhanced Privacy |
+| **Impact Signal** | COMPATIBLE |
+| **Difficulté** | Faible–moyenne |
+| **Tests** | Étendre `UtilTest_copyToClipboard` ; copie multi-part |
+
+### SEC-24 — Défaut notifications = `"all"`
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | MEDIUM |
+| **Fichier** | `keyvalue/SettingsValues.kt` → `messageNotificationsPrivacy` |
+| **Comportement** | Défaut upstream affiche contact **et** extrait |
+| **Correction Cipher** | Défaut `"contact"` ou mode GENERIC ; rester configurable |
+| **Impact Signal** | COMPATIBLE (défaut fork différent) |
+| **Difficulté** | Faible |
+
+### SEC-25 — Stack traces crash non scrubbées
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | MEDIUM |
+| **Fichier** | `util/SignalUncaughtExceptionHandler.java` → `LogDatabase.crashes().saveCrash` |
+| **Comportement** | Stack complète en clair dans `signal-logs.db` (SQLCipher) ; pas de `Scrubber` (contrairement à `PersistentLogger`) |
+| **Correction** | Scrubber avant save ; opt-out stockage crash |
+| **Impact Signal** | COMPATIBLE |
+| **Difficulté** | Faible |
+
+### SEC-26 — WebViews captcha / Stripe 3DS
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | MEDIUM |
+| **Fichiers** | `ratelimit/RecaptchaProofActivity.java` ; `subscription/.../Stripe3DSDialogFragment.kt` |
+| **Comportement** | JS activé ; URLs distantes ; pas de `addJavascriptInterface` repéré sur captcha |
+| **Risque** | Surface WebView ; 3DS avec DOM storage |
+| **Correction** | Durcir settings WebView ; allowlist Stripe ; `FLAG_SECURE` pendant flux |
+| **Impact Signal** | RISQUE si captcha/3DS cassés (registration / dons) |
+| **Difficulté** | Moyenne |
+
+### SEC-27 — Temp files attachments `.mms`
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | MEDIUM |
+| **Fichier** | `database/AttachmentTable.kt` (`createTempPartFile`, `PartFileProtector`) |
+| **Comportement** | Temps fichiers sous répertoire app ; protection mémoire ~10 min — pas chiffrement au repos pendant traitement |
+| **Correction** | Fenêtre de vie courte ; wipe ; pipeline chiffré immédiat si faisable sans casser perf |
+| **Impact Signal** | COMPATIBLE / RISQUE perf pipeline |
+| **Difficulté** | Élevée |
+
+### SEC-28 — Enquête qualité d’appel : share debug log coché par défaut
+| Champ | Contenu |
+|-------|---------|
+| **Sévérité** | LOW |
+| **Fichier** | `calls/quality/CallQualityScreens.kt` (`isShareDebugLogSelected = true`) |
+| **Correction** | Défaut décoché en Cipher |
+| **Impact Signal** | COMPATIBLE |
+| **Difficulté** | Triviale |
+
+### Points positifs confirmés (à conserver)
+- Lint `LogNotSignal` / pas de `android.util.Log` direct dans `app/src/main`
+- `LogDatabase` SQLCipher
+- `copyToClipboardSensitive` + `ClearClipboardAlarmReceiver` pour secrets
+- Analytics Firebase désactivés + WebView MetricsOptOut
+- Confidentialité notifications déjà implémentée (seul le **défaut** est permissif)
+
+### Limites
+- Pas de test runtime (OEM clipboard, backup Google, WebView live)
+- Modules `demo/*` non audités en détail
+- Couverture `Scrubber` = heuristique regex, pas preuve formelle
