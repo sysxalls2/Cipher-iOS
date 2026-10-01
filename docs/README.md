@@ -30,6 +30,17 @@ Documentation du projet **Cipher Messenger** (fork indépendant basé sur Signal
 | [desktop/MACOS_SECURITY.md](./desktop/MACOS_SECURITY.md) | Notes macOS |
 | [desktop/LINUX_SECURITY.md](./desktop/LINUX_SECURITY.md) | Notes Linux |
 
+## iOS
+
+| Document | Description |
+|----------|-------------|
+| [ios/CIPHER_IOS_ARCHITECTURE.md](./ios/CIPHER_IOS_ARCHITECTURE.md) | Xcode / targets / libsignal / IDs |
+| [ios/CIPHER_IOS_SECURITY_AUDIT.md](./ios/CIPHER_IOS_SECURITY_AUDIT.md) | Sécurité & Enhanced Privacy cible |
+| [ios/CIPHER_IOS_STORAGE_AUDIT.md](./ios/CIPHER_IOS_STORAGE_AUDIT.md) | GRDB, Keychain, App Groups |
+| [ios/CIPHER_IOS_NETWORK_AUDIT.md](./ios/CIPHER_IOS_NETWORK_AUDIT.md) | Endpoints & push |
+| [ios/CIPHER_IOS_BUILD.md](./ios/CIPHER_IOS_BUILD.md) | Build local & IPA |
+| [ios/BUILD_FROM_IPAD.md](./ios/BUILD_FROM_IPAD.md) | CI déclenchée depuis iPad |
+
 ## Règle de compatibilité
 
 Toute modification susceptible d’affecter le réseau doit être classée :
