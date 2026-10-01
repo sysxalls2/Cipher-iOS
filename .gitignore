@@ -1,0 +1,28 @@
+# Cipher workspace — track docs and project notes by default; vendor trees are huge.
+
+# Local / secrets
+**/.env
+**/local.properties
+**/keystore*.properties
+**/*.jks
+**/*.keystore
+**/google-services.json
+
+# Build outputs
+**/build/
+**/.gradle/
+**/captures/
+**/.cxx/
+
+# IDE
+**/.idea/
+**/*.iml
+**/.vscode/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Android SDK leftovers in tree
+**/local.properties
