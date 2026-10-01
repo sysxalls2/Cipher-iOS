@@ -1,0 +1,57 @@
+﻿name: Cipher iOS Diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostic:
+    runs-on: macos-latest
+
+    steps:
+      - name: Recuperer Cipher iOS
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verifier macOS
+        run: |
+          echo "=== macOS ==="
+          sw_vers
+          uname -m
+
+      - name: Verifier Xcode
+        run: |
+          echo "=== Xcode ==="
+          xcodebuild -version
+          xcode-select -p
+          xcodebuild -showsdks
+
+      - name: Verifier le projet
+        run: |
+          echo "=== RACINE DU PROJET ==="
+          pwd
+          ls -la
+
+          echo ""
+          echo "=== XCODEPROJ ==="
+          find . -maxdepth 3 -name "*.xcodeproj" -print
+
+          echo ""
+          echo "=== XCWORKSPACE ==="
+          find . -maxdepth 3 -name "*.xcworkspace" -print
+
+      - name: Verifier Signal workspace
+        run: |
+          if [ ! -d "Signal.xcworkspace" ]; then
+            echo "ERREUR : Signal.xcworkspace absent"
+            exit 1
+          fi
+
+          echo "Signal.xcworkspace trouve."
+
+      - name: Lister les schemes
+        run: |
+          xcodebuild \
+            -workspace Signal.xcworkspace \
+            -list
