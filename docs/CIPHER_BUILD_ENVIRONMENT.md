@@ -13,9 +13,13 @@
   - `JAVA_HOME` : `C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`
 - [x] Installation **Git for Windows** 2.55.0.5 via winget
 - [x] Installation **Android Platform-Tools** 37.0.1 via winget (`adb`)
-- [ ] Android cmdline-tools + packages SDK (platforms, build-tools, NDK 28.0.13004108, CMake) — en cours / à finaliser
-- [ ] `local.properties` (`sdk.dir`)
-- [ ] Premier `assemblePlayProdDebug` réussi
+- [x] Android cmdline-tools + packages SDK (`platforms;android-36`, `build-tools;36.0.0`, `ndk;28.0.13004108`, `cmake;3.22.1`, platform-tools)
+- [x] `Signal-Android-main/local.properties` (`sdk.dir`)
+- [x] Git init local dans `Signal-Android-main` (requis par `getGitHash()` / `getLastCommitTimestamp()`)
+- [x] Premier `assemblePlayProdDebug` **réussi** (2026-10-01)
+- [x] Commit workspace : `docs: add Cipher project audit` (`3db3954`)
+- [ ] `platforms;android-37` non publié sur sdkmanager au moment du build — AGP a géré compileSdk 37 sans package nommé android-37 installé manuellement (surveiller si régressions)
+- [ ] Branding / privacy source : **pas encore** (Phases 2+)
 
 ## Actions restantes pour compiler
 1. Finaliser SDK sous `%LOCALAPPDATA%\Android\Sdk` :
