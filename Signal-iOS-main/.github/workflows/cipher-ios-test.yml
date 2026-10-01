@@ -1,0 +1,82 @@
+﻿name: Cipher iOS Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostic:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: macOS information
+        run: |
+          echo "=== macOS ==="
+          sw_vers
+          echo ""
+          echo "Architecture:"
+          uname -m
+
+      - name: Xcode information
+        run: |
+          echo "=== Xcode ==="
+          xcodebuild -version
+          echo ""
+          echo "Developer directory:"
+          xcode-select -p
+          echo ""
+          echo "SDKs:"
+          xcodebuild -showsdks
+
+      - name: Find Xcode projects
+        run: |
+          echo "=== XCODE PROJECTS ==="
+          find . -name "*.xcodeproj" -not -path "*/Pods/*" -print
+          echo ""
+          echo "=== XCODE WORKSPACES ==="
+          find . -name "*.xcworkspace" -not -path "*/Pods/*" -print
+
+      - name: Find build files
+        run: |
+          echo "=== BUILD FILES ==="
+          find . -maxdepth 5 \( \
+            -name "Podfile" \
+            -o -name "Package.swift" \
+            -o -name "Gemfile" \
+            -o -name "Makefile" \
+            -o -name "*.xcconfig" \
+          \) -print
+
+      - name: Root directory
+        run: |
+          echo "=== ROOT ==="
+          pwd
+          ls -la
+
+      - name: Git information
+        run: |
+          echo "=== GIT ==="
+          git status
+          git submodule status || true
+
+      - name: List Xcode schemes
+        continue-on-error: true
+        run: |
+          WORKSPACE=$(find . -name "*.xcworkspace" -not -path "*/Pods/*" | head -1)
+          PROJECT=$(find . -name "*.xcodeproj" -not -path "*/Pods/*" | head -1)
+
+          echo "Workspace: $WORKSPACE"
+          echo "Project: $PROJECT"
+
+          if [ -n "$WORKSPACE" ]; then
+            xcodebuild -workspace "$WORKSPACE" -list
+          elif [ -n "$PROJECT" ]; then
+            xcodebuild -project "$PROJECT" -list
+          else
+            echo "No Xcode project found."
+          fi
